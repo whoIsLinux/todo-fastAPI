@@ -1,0 +1,67 @@
+from fastapi import FastAPI, HTTPException, Depends
+from sqlalchemy.orm import Session
+from database import engine, get_db
+from schemas import TodoBase, TodoResponse
+import models
+import schemas
+from typing import List
+
+app = FastAPI()
+
+# Create all database tables
+models.Base.metadata.create_all(bind=engine)
+
+
+#  Create a new todo item
+@app.post("/todos/")
+def create_todo(todo: schemas.TodoCreate, db: Session = Depends(get_db)):
+    new_todo = models.Todo(title=todo.title, description=todo.description ,completed=todo.completed)
+
+    db.add(new_todo)
+    db.commit()
+    db.refresh(new_todo)
+    return new_todo
+
+
+#  Get all todos
+@app.get("/todos", response_model=List[TodoResponse])
+def get_todos(db: Session = Depends(get_db)):
+    todos = db.query(models.Todo).all()
+    return todos
+
+
+  # Get a todo by id
+@app.get("/todos/{todo_id}", response_model=schemas.TodoResponse)
+def get_todo(todo_id: int, db: Session = Depends(get_db)):
+    todo = db.query(models.Todo).filter(models.Todo.id == todo_id).first()
+    if not todo:
+        raise HTTPException(status_code=404, detail="Todo not found")
+    return todo
+
+#  Update a todo by ID
+@app.put("/todos/{todo_id}" ,  response_model=schemas.TodoResponse)
+def update_todo(todo_id: int, updated_todo: schemas.TodoCreate, db: Session = Depends(get_db)):
+    todo = db.query(models.Todo).filter(models.Todo.id == todo_id).first()
+    if not todo:
+        raise HTTPException(status_code=404, detail="Todo not found")
+
+    todo.title = updated_todo.title
+    todo.description = updated_todo.description
+    todo.completed = updated_todo.completed
+
+    
+    db.commit()
+    db.refresh(todo)
+    return todo
+
+
+#  Delete a todo by ID
+@app.delete("/todos/{todo_id}")
+def delete_todo(todo_id: int, db: Session = Depends(get_db)):
+    todo = db.query(models.Todo).filter(models.Todo.id == todo_id).first()
+    if not todo:
+        raise HTTPException(status_code=404, detail="Todo not found")
+
+    db.delete(todo)
+    db.commit()
+  
