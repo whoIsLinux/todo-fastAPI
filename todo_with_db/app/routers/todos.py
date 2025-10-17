@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException , status
 from sqlalchemy.orm import Session
 from app import models, schemas, database
 from app.dependencies import get_db
@@ -11,15 +11,15 @@ router = APIRouter(
 
 
 #  Get all todos
-@router.get("/", response_model=List[schemas.TodoResponse])
+@router.get("/", response_model=List[schemas.TodoResponse], status_code=status.HTTP_200_OK)
 def get_todos(db: Session = Depends(get_db)):
     todos = db.query(models.Todo).all()
     return todos
 
 
 #  Get a todo by ID
-@router.get("/{todo_id}", response_model=schemas.TodoResponse)
-def get_todo(todo_id: int, db: Session = Depends(get_db)):
+@router.get("/{todo_id}", response_model=schemas.TodoResponse, status_code=status.HTTP_200_OK)
+def get_todo(todo_id: str, db: Session = Depends(get_db)):
     todo = db.query(models.Todo).filter(models.Todo.id == todo_id).first()
     if not todo:
         raise HTTPException(status_code=404, detail="Todo not found")
@@ -27,7 +27,7 @@ def get_todo(todo_id: int, db: Session = Depends(get_db)):
 
 
 #  Create a new todo
-@router.post("/", response_model=schemas.TodoResponse)
+@router.post("/", response_model=schemas.TodoResponse , status_code=status.HTTP_201_CREATED)
 def create_todo(todo: schemas.TodoCreate, db: Session = Depends(get_db)):
     new_todo = models.Todo(**todo.dict())
     db.add(new_todo)
@@ -37,8 +37,8 @@ def create_todo(todo: schemas.TodoCreate, db: Session = Depends(get_db)):
 
 
 #  Update a todo
-@router.put("/{todo_id}", response_model=schemas.TodoResponse)
-def update_todo(todo_id: int, updated_todo: schemas.TodoCreate, db: Session = Depends(get_db)):
+@router.put("/{todo_id}", response_model=schemas.TodoResponse, status_code=status.HTTP_200_OK)
+def update_todo(todo_id: str, updated_todo: schemas.TodoCreate, db: Session = Depends(get_db)):
     todo = db.query(models.Todo).filter(models.Todo.id == todo_id).first()
     if not todo:
         raise HTTPException(status_code=404, detail="Todo not found")
@@ -51,8 +51,8 @@ def update_todo(todo_id: int, updated_todo: schemas.TodoCreate, db: Session = De
 
 
 #  Delete a todo
-@router.delete("/{todo_id}")
-def delete_todo(todo_id: int, db: Session = Depends(get_db)):
+@router.delete("/{todo_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_todo(todo_id: str, db: Session = Depends(get_db)):
     todo = db.query(models.Todo).filter(models.Todo.id == todo_id).first()
     if not todo:
         raise HTTPException(status_code=404, detail="Todo not found")
